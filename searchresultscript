@@ -246,8 +246,7 @@ document.addEventListener("DOMContentLoaded", async function () {
          boxShadow,
     };
 
-    const form = document.querySelector(".w-form, #search-form");
-    const input = document.querySelector("input[name='query']");
+ 
 const wrapper = document.querySelector(".searchresultformwrapper");
 
   const form = wrapper.querySelector("form.w-form"); // form inside wrapper
@@ -262,6 +261,21 @@ const wrapper = document.querySelector(".searchresultformwrapper");
 
     // Hide submit button if Auto result
 const submitButton = form?.querySelector("input[type='submit']");
+if (submitButton) {
+  submitButton.addEventListener('click', () => {
+    // Add press animation effect
+    submitButton.style.transition = 'transform 0.1s ease, box-shadow 0.1s ease';
+    submitButton.style.transform = 'scale(0.95)';
+    submitButton.style.boxShadow = 'inset 0 0 5px rgba(0,0,0,0.2)';
+
+    // Revert the button after a short delay
+    setTimeout(() => {
+      submitButton.style.transform = 'scale(1)';
+      submitButton.style.boxShadow = '';
+    }, 150);
+  });
+}
+
 if (resultType === "Auto result" && submitButton) {
     submitButton.style.display = "none";
 }
