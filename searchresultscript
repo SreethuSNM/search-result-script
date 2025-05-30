@@ -248,6 +248,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     const form = document.querySelector(".w-form, #search-form");
     const input = document.querySelector("input[name='query']");
+const wrapper = document.querySelector(".searchresultformwrapper");
+
+  const form = wrapper.querySelector("form.w-form"); // form inside wrapper
+  const input = wrapper.querySelector("input[name='query']"); // input inside wrapper
     const resultsContainer = document.querySelector(".searchresults");
     const base_url = "https://search-server.long-rain-28bb.workers.dev";
     const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
