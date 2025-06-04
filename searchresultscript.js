@@ -9,7 +9,6 @@ async function getOrCreateVisitorId() {
     return visitorId;
 }
 
-
 // Check if the token has expired
 function isTokenExpired(token) {
     try {
