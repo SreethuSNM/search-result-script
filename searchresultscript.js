@@ -263,8 +263,9 @@ const wrapper = document.querySelector(".searchresultformwrapper");
 const submitButton = form?.querySelector("input[type='submit']");
 
 // Add CSS for button click effect
-  const style = document.createElement("style");
-  style.textContent = `
+// Add CSS for button click effect (renamed variable to avoid conflicts)
+  const submitButtonStyle = document.createElement("style");
+  submitButtonStyle.textContent = `
     input[type='submit'] {
       transition: transform 0.1s ease, box-shadow 0.1s ease;
     }
@@ -274,7 +275,7 @@ const submitButton = form?.querySelector("input[type='submit']");
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) inset;
     }
   `;
-  document.head.appendChild(style);
+  document.head.appendChild(submitButtonStyle);
 
 
     if (!form || !input || !resultsContainer) {
