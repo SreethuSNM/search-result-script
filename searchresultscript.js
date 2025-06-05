@@ -262,20 +262,7 @@ const wrapper = document.querySelector(".searchresultformwrapper");
     // Hide submit button if Auto result
 const submitButton = form?.querySelector("input[type='submit']");
 
-// Add CSS for button click effect
-// Add CSS for button click effect (renamed variable to avoid conflicts)
-  const submitButtonStyle = document.createElement("style");
-  submitButtonStyle.textContent = `
-    input[type='submit'] {
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
-    }
-
-    input[type='submit']:active {
-      transform: scale(0.95);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) inset;
-    }
-  `;
-  document.head.appendChild(submitButtonStyle);
+submitButton.style.display = "none";
 
 
     if (!form || !input || !resultsContainer) {
@@ -289,41 +276,33 @@ const submitButton = form?.querySelector("input[type='submit']");
     const token = await getVisitorSessionToken();
     console.log("Generated Token: ", token);
 
-//      // === Implement Search Bar Display Mode ===
-//   if (searchBarType === "Icon") {
-//   // Hide form initially, show icon container (assumed to already exist)
-//   form.style.display = "none";
+     // === Implement Search Bar Display Mode ===
+  if (searchBarType === "Icon") {
+  // Hide form initially, show icon container (assumed to already exist)
+  form.style.display = "none";
 
-//   const iconContainer = document.querySelector(".searchiconcontainer");
-//   if (!iconContainer) {
-//     console.error("'.searchiconcontainer' element not found.");
-//     return;
-//   }
+  const iconContainer = document.querySelector(".searchiconcontainer");
+  if (!iconContainer) {
+    console.error("'.searchiconcontainer' element not found.");
+    return;
+  }
 
-//   iconContainer.style.cursor = "pointer";
-//   iconContainer.style.display = ""; // Make sure icon is visible
+  iconContainer.style.cursor = "pointer";
+  iconContainer.style.display = ""; // Make sure icon is visible
 
-//   // On click show the form and hide the icon container
-//   iconContainer.addEventListener("click", () => {
-//     form.style.display = "";
-//     iconContainer.style.display = "none";
-//     input.focus();
-//   });
-// } else {
-//   // Expand mode: show form and hide icon container if exists
-//   form.style.display = "";
-//   const iconContainer = document.querySelector(".searchiconcontainer");
-//   if (iconContainer) iconContainer.style.display = "none";
-// }
-
-
-
-    
-
-const iconContainer = document.querySelector(".searchiconcontainer");
-if (iconContainer) {
-  iconContainer.style.display = "none"; // Always hide the icon
+  // On click show the form and hide the icon container
+  iconContainer.addEventListener("click", () => {
+    form.style.display = "";
+    iconContainer.style.display = "none";
+    input.focus();
+  });
+} else {
+  // Expand mode: show form and hide icon container if exists
+  form.style.display = "";
+  const iconContainer = document.querySelector(".searchiconcontainer");
+  if (iconContainer) iconContainer.style.display = "none";
 }
+
 
 
     // Inject styles dynamically for suggestions
@@ -468,24 +447,19 @@ resultsContainer.innerHTML = html || "<p>No results found.</p>";
 
 
        
-        // let debounceTimeout;
-        // input.addEventListener("input", () => {
-        //     clearTimeout(debounceTimeout);
-        //     debounceTimeout = setTimeout(() => {
-        //         performSearch();
-        //     }, 300); // 300ms debounce
-        // });
-
-    // Perform search on submit button click only
-  if (submitButton) {
-    submitButton.addEventListener("click", (e) => {
-      e.preventDefault(); // Prevent default form submission
-      performSearch(); // Call your search logic
-    });
-  }
+      //  let debounceTimeout;
+      //  input.addEventListener("input", () => {
+        //    clearTimeout(debounceTimeout);
+         //   debounceTimeout = setTimeout(() => {
+           //     performSearch();
+           // }, 300); // 300ms debounce
+       // });
     
         
-        
+        form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  performSearch(); // ✅ trigger search on submit
+});
     
 document.addEventListener('click', (event) => {
   if (!suggestionBox.contains(event.target) && event.target !== input) {
@@ -495,5 +469,4 @@ document.addEventListener('click', (event) => {
 
 
 });   
-
 </script>
