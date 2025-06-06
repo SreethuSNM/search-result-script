@@ -9,6 +9,7 @@ async function getOrCreateVisitorId() {
     return visitorId;
 }
 
+
 // Check if the token has expired
 function isTokenExpired(token) {
     try {
@@ -199,6 +200,10 @@ function renderResults(results, title, displayMode, maxItems, gridColumns = 3, p
 
     return sectionHtml;
 }
+
+//Renderresult END
+
+// Start DOMContentLoaded
 
 document.addEventListener("DOMContentLoaded", async function () {
     const searchConfigDiv = document.querySelector('#search-config');
@@ -397,69 +402,104 @@ suggestionBox.querySelectorAll('.suggestion-item').forEach(item => {
     }
 
     if (!query) return;
+try {
+    const headers = { Authorization: `Bearer ${token}` };
+    const fetchPromises = [];
+    const parsePromises = [];
 
-    try {
-        const headers = { Authorization: `Bearer ${token}` };
-
-        const [pageRes, cmsRes] = await Promise.all([
-            fetch(`${base_url}/api/search-index?query=${encodeURIComponent(query)}&siteName=${siteName}`, { headers }),
-            fetch(`${base_url}/api/search-cms?query=${encodeURIComponent(query)}&siteName=${siteName}&collections=${collectionsParam}&searchFields=${fieldsSearchParam}&displayFields=${fieldsDisplayParam}`, { headers }),
-        ]);
-
-        const [pageData, cmsData] = await Promise.all([
-            pageRes.ok ? pageRes.json() : { results: [] },
-            cmsRes.ok ? cmsRes.json() : { results: [] },
-        ]);
-
-        const pageResults = Array.isArray(pageData.results) ? pageData.results : [];
-        const cmsResults = Array.isArray(cmsData.results) ? cmsData.results : [];
-
-        if (pageResults.length === 0 && cmsResults.length === 0) {
-            resultsContainer.innerHTML = "<p>No results found.</p>";
-            return;
-        }
-
-       let html = "";
-
-if ((selectedOption === "Pages" || selectedOption === "Both") && pageResults.length > 0) {
-    html += renderResults(pageResults, "Page Results", displayMode, maxItems, gridColumns, paginationType, null, 1, true, styles);
-}
-
-if ((selectedOption === "Collection" || selectedOption === "Both") && cmsResults.length > 0) {
-    html += renderResults(cmsResults, "Collection Results", displayMode, maxItems, gridColumns, paginationType, null, 1, false, styles);
-}
-
-resultsContainer.innerHTML = html || "<p>No results found.</p>";
-
-
-    } catch (error) {
-        console.error('Error performing search:', error);
-        resultsContainer.innerHTML = "<p>Error performing search. Please try again later.</p>";
+    // Conditionally add `search-index` request
+    if (selectedOption === "Pages" || selectedOption === "Both") {
+        const pageFetch = fetch(
+            `${base_url}/api/search-index?query=${encodeURIComponent(query)}&siteName=${siteName}`,
+            { headers }
+        );
+        fetchPromises.push(pageFetch);
+        parsePromises.push(pageFetch.then(res => res.ok ? res.json() : { results: [] }));
+    } else {
+        parsePromises.push(Promise.resolve({ results: [] }));
     }
+
+    // Always fetch CMS
+    const cmsFetch = fetch(
+        `${base_url}/api/search-cms?query=${encodeURIComponent(query)}&siteName=${siteName}&collections=${collectionsParam}&searchFields=${fieldsSearchParam}&displayFields=${fieldsDisplayParam}`,
+        { headers }
+    );
+    fetchPromises.push(cmsFetch);
+    parsePromises.push(cmsFetch.then(res => res.ok ? res.json() : { results: [] }));
+
+    const [pageData, cmsData] = await Promise.all(parsePromises);
+
+    const pageResults = Array.isArray(pageData.results) ? pageData.results : [];
+    const cmsResults = Array.isArray(cmsData.results) ? cmsData.results : [];
+
+    if (pageResults.length === 0 && cmsResults.length === 0) {
+        resultsContainer.innerHTML = "<p>No results found.</p>";
+        return;
+    }
+
+    let html = "";
+
+    if ((selectedOption === "Pages" || selectedOption === "Both") && pageResults.length > 0) {
+        html += renderResults(
+            pageResults,
+            "Page Results",
+            displayMode,
+            maxItems,
+            gridColumns,
+            paginationType,
+            null,
+            1,
+            true,
+            styles
+        );
+    }
+
+    if ((selectedOption === "Collection" || selectedOption === "Both") && cmsResults.length > 0) {
+        html += renderResults(
+            cmsResults,
+            "Collection Results",
+            displayMode,
+            maxItems,
+            gridColumns,
+            paginationType,
+            null,
+            1,
+            false,
+            styles
+        );
+    }
+
+    resultsContainer.innerHTML = html || "<p>No results found.</p>";
+} catch (error) {
+    console.error("Search error:", error);
+    resultsContainer.innerHTML = "<p>Error fetching search results.</p>";
 }
 
     
-    window.addEventListener("DOMContentLoaded", () => {
-  if (window.location.pathname.includes("search-results")) {
+}
+
+   // Populate input from URL and perform search
+const urlParams = new URLSearchParams(window.location.search);
+const queryParam = urlParams.get('q');
+if (queryParam && input) {
+  input.value = queryParam;
+}
+if (window.location.pathname.includes("search-app-results")) {
+  performSearch();
+}
+ 
+   
+
+       
+        input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault(); // prevent form submission
     performSearch();
   }
 });
 
-
-       
-      //  let debounceTimeout;
-      //  input.addEventListener("input", () => {
-        //    clearTimeout(debounceTimeout);
-         //   debounceTimeout = setTimeout(() => {
-           //     performSearch();
-           // }, 300); // 300ms debounce
-       // });
-    
         
-        form.addEventListener("submit", (e) => {
-  e.preventDefault();
-  performSearch(); // ✅ trigger search on submit
-});
+        
     
 document.addEventListener('click', (event) => {
   if (!suggestionBox.contains(event.target) && event.target !== input) {
