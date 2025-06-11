@@ -1,4 +1,4 @@
-<script>
+
 // Generate or get visitor ID
 async function getOrCreateVisitorId() {
     let visitorId = localStorage.getItem('visitorId');
@@ -509,4 +509,4 @@ document.addEventListener('click', (event) => {
 
 
 });   
-</script>
+
