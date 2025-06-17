@@ -1,4 +1,4 @@
-
+<script>
 // Generate or get visitor ID
 async function getOrCreateVisitorId() {
     let visitorId = localStorage.getItem('visitorId');
@@ -8,7 +8,6 @@ async function getOrCreateVisitorId() {
     }
     return visitorId;
 }
-
 
 // Check if the token has expired
 function isTokenExpired(token) {
@@ -201,10 +200,6 @@ function renderResults(results, title, displayMode, maxItems, gridColumns = 3, p
     return sectionHtml;
 }
 
-//Renderresult END
-
-// Start DOMContentLoaded
-
 document.addEventListener("DOMContentLoaded", async function () {
     const searchConfigDiv = document.querySelector('#search-config');
 
@@ -308,31 +303,62 @@ submitButton.style.display = "none";
   if (iconContainer) iconContainer.style.display = "none";
 }
 
+function sanitizeText(text) {
+  const div = document.createElement("div");
+  div.innerHTML = text;
+  return div.textContent || div.innerText || "";
+}
 
+function toTitleCase(str) {
+  return str.replace(/\w\S*/g, (txt) =>
+    txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase()
+  );
+}
 
     // Inject styles dynamically for suggestions
     const style = document.createElement("style");
     style.textContent = `
-     .searchsuggestionbox {
-  position: absolute;
-  top: 100%;           /* Places it directly below the input */
-  left: 0;
-  background: white;
-  border: 1px solid #ccc;
-  max-height: 200px;
-  overflow-y: auto;
-  width: 100%;
-  display: none;
-  z-index: 1000;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-      .suggestion-item {
-        padding: 8px;
-        cursor: pointer;
-      }
-      .suggestion-item:hover {
-        background-color: #eee;
-      }
+    .searchsuggestionbox {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid #ccc;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 100%;
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+
+  .searchsuggestionbox .suggestion-item {
+    padding: 8px;
+    cursor: pointer;
+    color: black !important;
+    font-size: 12px !important;
+    font-family: 'Inter', 'Arial', sans-serif !important;
+    line-height: 1.4;
+    background: white !important;
+    border: none !important;
+    text-transform: capitalize !important;
+    white-space: normal;
+  }
+
+  .searchsuggestionbox .suggestion-item:hover {
+    background-color: #eee;
+  }
+  .searchsuggestionbox .view-all-link {
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    color: #0073e6 !important;
+    cursor: pointer;
+    border-top: 1px solid #eee;
+    background: #fafafa;
+    font-family: Arial, sans-serif !important;
+    font-size: 16px !important;
+  }
     `;
     document.head.appendChild(style);
 
@@ -368,7 +394,11 @@ submitButton.style.display = "none";
             if (data.suggestions && data.suggestions.length > 0) {
                 suggestionBox.style.display = "block";
                 suggestionBox.innerHTML = data.suggestions
-                    .map(s => `<div class="suggestion-item">${s}</div>`)
+                    .map(s => {
+      const clean = sanitizeText(s);
+      const titled = toTitleCase(clean);
+      return `<div class="suggestion-item">${titled}</div>`;
+    })
                     .join("");
 
                 // Attach click listeners to suggestions
@@ -391,8 +421,7 @@ suggestionBox.querySelectorAll('.suggestion-item').forEach(item => {
         }
     });
 
-
-   async function performSearch() {
+async function performSearch() {
     let query = input?.value.trim().toLowerCase();
 
     if (!query) {
@@ -402,104 +431,94 @@ suggestionBox.querySelectorAll('.suggestion-item').forEach(item => {
     }
 
     if (!query) return;
-try {
-    const headers = { Authorization: `Bearer ${token}` };
-    const fetchPromises = [];
-    const parsePromises = [];
 
-    // Conditionally add `search-index` request
-    if (selectedOption === "Pages" || selectedOption === "Both") {
-        const pageFetch = fetch(
-            `${base_url}/api/search-index?query=${encodeURIComponent(query)}&siteName=${siteName}`,
-            { headers }
-        );
-        fetchPromises.push(pageFetch);
-        parsePromises.push(pageFetch.then(res => res.ok ? res.json() : { results: [] }));
-    } else {
-        parsePromises.push(Promise.resolve({ results: [] }));
+    try {
+        const headers = { Authorization: `Bearer ${token}` };
+
+        let pageResPromise = Promise.resolve({ ok: true, json: () => ({ results: [] }) }); // Default to empty successful response
+        let cmsResPromise = Promise.resolve({ ok: true, json: () => ({ results: [] }) }); // Default to empty successful response
+
+        // Conditionally create promises based on selectedOption
+        if (selectedOption === "Pages" || selectedOption === "Both") {
+            pageResPromise = fetch(`${base_url}/api/search-index?query=${encodeURIComponent(query)}&siteName=${siteName}`, { headers });
+        }
+
+        if (selectedOption === "Collection" || selectedOption === "Both") {
+            cmsResPromise = fetch(`${base_url}/api/search-cms?query=${encodeURIComponent(query)}&siteName=${siteName}&collections=${collectionsParam}&searchFields=${fieldsSearchParam}&displayFields=${fieldsDisplayParam}`, { headers });
+        }
+
+        // Wait for only the necessary promises to resolve
+        const [pageRes, cmsRes] = await Promise.all([
+            pageResPromise,
+            cmsResPromise,
+        ]);
+
+        const pageData = pageRes.ok ? await pageRes.json() : { results: [] };
+        const cmsData = cmsRes.ok ? await cmsRes.json() : { results: [] };
+
+        // Clear previous results
+        resultsContainer.innerHTML = "";
+
+        // Combine results and add a type identifier
+        let allResults = [];
+
+        // Note: pageData.results and cmsData.results will now correctly be empty arrays
+        // if their respective fetches were skipped or failed.
+        if (Array.isArray(pageData.results) && pageData.results.length > 0) {
+            allResults = allResults.concat(pageData.results.map(item => ({ ...item, _type: 'page' })));
+        }
+
+        if (Array.isArray(cmsData.results) && cmsData.results.length > 0) {
+            allResults = allResults.concat(cmsData.results.map(item => ({ ...item, _type: 'cms' })));
+        }
+
+        if (allResults.length === 0) {
+            resultsContainer.innerHTML = "<p>No results found.</p>";
+            return;
+        }
+
+        // Optional: Sort combined results if needed, e.g., by a relevance score or date
+        // allResults.sort((a, b) => /* your sorting logic here */);
+
+        // Render all results into a single container with a single pagination
+        const combinedResultsDiv = document.createElement("div");
+        combinedResultsDiv.classList.add("combined-search-results"); // Add a class for styling
+        resultsContainer.appendChild(combinedResultsDiv);
+
+        // Call renderResults only once with the combined results
+        // The `isPageResult` parameter is now effectively managed by the `_type` property within each item
+        renderResults(allResults, "Search Results", displayMode, maxItems, gridColumns, paginationType, combinedResultsDiv, 1, false, styles); // Pass false for isPageResult, as it's now handled internally
+
+    } catch (error) {
+        console.error('Error performing search:', error);
+        resultsContainer.innerHTML = "<p>Error performing search. Please try again later.</p>";
     }
-
-    // Always fetch CMS
-    const cmsFetch = fetch(
-        `${base_url}/api/search-cms?query=${encodeURIComponent(query)}&siteName=${siteName}&collections=${collectionsParam}&searchFields=${fieldsSearchParam}&displayFields=${fieldsDisplayParam}`,
-        { headers }
-    );
-    fetchPromises.push(cmsFetch);
-    parsePromises.push(cmsFetch.then(res => res.ok ? res.json() : { results: [] }));
-
-    const [pageData, cmsData] = await Promise.all(parsePromises);
-
-    const pageResults = Array.isArray(pageData.results) ? pageData.results : [];
-    const cmsResults = Array.isArray(cmsData.results) ? cmsData.results : [];
-
-    if (pageResults.length === 0 && cmsResults.length === 0) {
-        resultsContainer.innerHTML = "<p>No results found.</p>";
-        return;
-    }
-
-    let html = "";
-
-    if ((selectedOption === "Pages" || selectedOption === "Both") && pageResults.length > 0) {
-        html += renderResults(
-            pageResults,
-            "Page Results",
-            displayMode,
-            maxItems,
-            gridColumns,
-            paginationType,
-            null,
-            1,
-            true,
-            styles
-        );
-    }
-
-    if ((selectedOption === "Collection" || selectedOption === "Both") && cmsResults.length > 0) {
-        html += renderResults(
-            cmsResults,
-            "Collection Results",
-            displayMode,
-            maxItems,
-            gridColumns,
-            paginationType,
-            null,
-            1,
-            false,
-            styles
-        );
-    }
-
-    resultsContainer.innerHTML = html || "<p>No results found.</p>";
-} catch (error) {
-    console.error("Search error:", error);
-    resultsContainer.innerHTML = "<p>Error fetching search results.</p>";
 }
 
     
-}
-
-   // Populate input from URL and perform search
-const urlParams = new URLSearchParams(window.location.search);
-const queryParam = urlParams.get('q');
-if (queryParam && input) {
-  input.value = queryParam;
-}
-if (window.location.pathname.includes("search-app-results")) {
-  performSearch();
-}
- 
-   
-
-       
-        input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault(); // prevent form submission
+    window.addEventListener("DOMContentLoaded", () => {
+  if (window.location.pathname.includes("search-results")) {
     performSearch();
   }
 });
 
+
+
+
+       
+      //  let debounceTimeout;
+      //  input.addEventListener("input", () => {
+        //    clearTimeout(debounceTimeout);
+         //   debounceTimeout = setTimeout(() => {
+           //     performSearch();
+           // }, 300); // 300ms debounce
+       // });
+    
         
-        
+        form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  performSearch(); // ✅ trigger search on submit
+});
     
 document.addEventListener('click', (event) => {
   if (!suggestionBox.contains(event.target) && event.target !== input) {
@@ -509,4 +528,4 @@ document.addEventListener('click', (event) => {
 
 
 });   
-
+</script>
