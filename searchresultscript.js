@@ -1,4 +1,4 @@
-//<script>
+<script>
 // Generate or get visitor ID
 async function getOrCreateVisitorId() {
     let visitorId = localStorage.getItem('visitorId');
@@ -75,9 +75,13 @@ function renderResults(results, title, displayMode, maxItems, gridColumns = 3, p
     
     const itemsHtml = pagedResults.map(item => {
   const titleText = item.name || item.title || "Untitled";
-  const detailUrl = isPageResult
-    ? (item.publishedPath || item.slug || "#")
-    : (item.detailUrl || "#");
+  //const detailUrl = isPageResult
+   // ? (item.publishedPath || item.slug || "#")
+    //: (item.detailUrl || "#");
+
+const detailUrl = item._type === 'page'
+  ? (item.publishedPath || item.slug || "#")
+  : (item.detailUrl || "#");
   const matchedText = item.matchedText?.slice(0, 200) || "";
 
   const fieldsHtml = Object.entries(item)
@@ -331,6 +335,8 @@ function toTitleCase(str) {
     z-index: 1000;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   }
+  
+ 
 
   .searchsuggestionbox .suggestion-item {
     padding: 8px;
@@ -420,6 +426,53 @@ suggestionBox.querySelectorAll('.suggestion-item').forEach(item => {
             suggestionBox.innerHTML = "";
         }
     });
+    
+    
+   // Create spinner element
+const spinner = document.createElement("div");
+spinner.id = "search-spinner";
+spinner.style.display = "none";
+spinner.innerHTML = `
+  <div class="spinner"></div>
+`;
+
+// Add spinner styles
+const spinnerStyle = document.createElement("style");
+spinnerStyle.textContent = `
+#search-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60px;
+}
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #0073e6;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+}
+`;
+
+// Append spinner and styles to the document
+document.head.appendChild(spinnerStyle);
+document.body.appendChild(spinner);
+
+
+function showSpinner() {
+  spinner.style.display = "flex";
+  // Optionally, position spinner over resultsContainer:
+  resultsContainer.parentNode.insertBefore(spinner, resultsContainer);
+}
+
+function hideSpinner() {
+  spinner.style.display = "none";
+}
 
 async function performSearch() {
     let query = input?.value.trim().toLowerCase();
@@ -431,6 +484,10 @@ async function performSearch() {
     }
 
     if (!query) return;
+    
+    
+     showSpinner();
+    resultsContainer.innerHTML = ""; 
 
     try {
         const headers = { Authorization: `Bearer ${token}` };
@@ -488,10 +545,11 @@ async function performSearch() {
         // Call renderResults only once with the combined results
         // The `isPageResult` parameter is now effectively managed by the `_type` property within each item
         renderResults(allResults, "Search Results", displayMode, maxItems, gridColumns, paginationType, combinedResultsDiv, 1, false, styles); // Pass false for isPageResult, as it's now handled internally
-
+ hideSpinner();
     } catch (error) {
         console.error('Error performing search:', error);
         resultsContainer.innerHTML = "<p>Error performing search. Please try again later.</p>";
+    hideSpinner();
     }
 }
 
@@ -528,4 +586,4 @@ document.addEventListener('click', (event) => {
 
 
 });   
-// </script>
+</script>
