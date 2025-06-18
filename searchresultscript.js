@@ -497,7 +497,7 @@ async function performSearch() {
 
     
     window.addEventListener("DOMContentLoaded", () => {
-  if (window.location.pathname.includes("search-results")) {
+  if (window.location.pathname.includes("search-app-results")) {
     performSearch();
   }
 });
